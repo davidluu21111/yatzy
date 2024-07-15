@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yatzy Game</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 8px 12px; border: 1px solid #ddd; }
+        th { background-color: #f4f4f4; }
+        #dice { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Yatzy Game</h1>
+    <div id="dice"></div>
+    <button id="rollButton">Roll Dice</button>
+
+    <h2>Leaderboard</h2>
+    <table id="leaderboard">
+        <thead>
+            <tr>
+                <th>Player</th>
+                <th>Score</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Leaderboard data will be inserted here -->
+        </tbody>
+    </table>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        function fetchLeaderboard() {
+            $.ajax({
+                url: '/leaderboard',
+                method: 'GET',
+                success: function(data) {
+                    const leaderboard = JSON.parse(data);
+                    const tbody = $('#leaderboard tbody');
+                    tbody.empty();
+                    if (leaderboard.length === 0) {
+                        tbody.append('<tr><td colspan="2">No scores yet.</td></tr>');
+                    } else {
+                        leaderboard.forEach(function(entry) {
+                            tbody.append('<tr><td>' + entry.player + '</td><td>' + entry.score + '</td></tr>');
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error fetching leaderboard:', status, error);
+                }
+            });
+        }
+
+        function displayDice(result) {
+            const diceDiv = $('#dice');
+            diceDiv.empty();
+            result.forEach(function(die) {
+                diceDiv.append('<span>' + die + '</span> ');
+            });
+        }
+
+        $('#rollButton').click(function() {
+            $.ajax({
+                url: '/roll',
+                method: 'GET',
+                success: function(data) {
+                    const result = JSON.parse(data);
+                    displayDice(result);
+                    const player = prompt('Enter your name:');
+                    if (player) {
+                        $.ajax({
+                            url: '/roll',
+                            method: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({ player: player, result: result }),
+                            success: function() {
+                                fetchLeaderboard();
+                            },
+                            error: function(xhr, status, error) {
+                                console.error('Error submitting roll:', status, error);
+                            }
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error rolling dice:', status, error);
+                }
+            });
+        });
+
+        fetchLeaderboard();
+    });
+</script>
+</body>
+</html>
